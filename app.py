@@ -335,7 +335,7 @@ st.markdown("""
             display: block !important;
             visibility: visible !important;
             position: fixed;
-            top: 14px;
+            top: 40px;
             left: 14px;
             z-index: 999;
         }
