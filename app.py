@@ -330,7 +330,12 @@ st.markdown("""
     <style>
         #MainMenu {visibility: hidden;}
         footer {visibility: hidden;}
-        [data-testid="stHeader"] {height: 0; min-height: 0;}
+        [data-testid="stHeader"] {
+            height: 0;
+            min-height: 0;
+            padding: 0;
+            display: none;
+        }
         [data-testid="collapsedControl"] {
             display: block !important;
             visibility: visible !important;
