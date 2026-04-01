@@ -334,13 +334,12 @@ st.markdown("""
             height: 0;
             min-height: 0;
             padding: 0;
-            display: none;
         }
         [data-testid="collapsedControl"] {
             display: block !important;
             visibility: visible !important;
             position: fixed;
-            top: 40px;
+            top: 80px;
             left: 14px;
             z-index: 999;
         }
