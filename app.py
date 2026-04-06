@@ -90,6 +90,7 @@ with tab1:
         st.markdown("**Estadísticos:**")
         st.latex(r"R^2 = 1 - \frac{S_r}{S_t} \quad S_t = \sum(h_i - \bar{h})^2 \quad S_r = \sum(h_i - \hat{h}_i)^2")
         st.latex(r"S_y = \sqrt{\frac{S_t}{n-1}} \qquad S_{y/x} = \sqrt{\frac{S_r}{n-2}}")
+        st.latex(r"S_r = \sum_{i=1}^{n}(h_i - \hat{h}_i)^2")
 
     # Cálculo
     coef = np.polyfit(t, h, 1) # funcion de coeficientes
@@ -122,6 +123,7 @@ with tab1:
     col1, col2, col3, col4 = st.columns(4)
     col1.metric("R²", f"{r2:.4f}")
     col2.metric("r (correlación)", f"{r:.4f}")
+    st.metric("Sr (suma de residuos)", f"{Sr:.4f}") 
     col3.metric("Sy (desv. est. total)", f"{Sy:.4f}")
     col4.metric("Syx (error estándar)", f"{Syx:.4f}")
     st.info(f"Ecuación: h(t) = {coef[0]:.4f} · t + {coef[1]:.4f}")
@@ -136,6 +138,7 @@ with tab2:
         st.latex(r"\begin{bmatrix} a_0 \\ a_1 \\ a_2 \end{bmatrix} = (X^T X)^{-1} X^T h")
         st.markdown("**Estadísticos:**")
         st.latex(r"R^2 = 1 - \frac{S_r}{S_t} \qquad S_{y/x} = \sqrt{\frac{S_r}{n-3}}")
+        st.latex(r"S_r = \sum_{i=1}^{n}(h_i - \hat{h}_i)^2")
 
     # Cálculo
     coef2 = np.polyfit(t, h, 2) # funcion de coeficientes
@@ -160,6 +163,7 @@ with tab2:
     col1, col2, col3, col4 = st.columns(4)
     col1.metric("R²", f"{r2_pol:.4f}")
     col2.metric("r (correlación)", f"{r_pol:.4f}")
+    st.metric("Sr (suma de residuos)", f"{Sr2:.4f}")
     col3.metric("Sy (desv. est. total)", f"{Sy:.4f}")
     col4.metric("Syx (error estándar)", f"{Syx2:.4f}")
 
@@ -207,6 +211,7 @@ with tab3:
     col1, col2, col3, col4 = st.columns(4)
     col1.metric("R²", f"{r2_exp:.4f}")
     col2.metric("r (correlación)", f"{r_exp:.4f}")
+    st.metric("Sr (suma de residuos)", f"{Sr3:.4f}")
     col3.metric("Sy (desv. est. total)", f"{Sy:.4f}")
     col4.metric("Syx (error estándar)", f"{Syx3:.4f}")
 
@@ -358,6 +363,57 @@ tabla = pd.DataFrame({
     "Desv. estándar εt%": [f"{g[4]:.4f}%" for g in grados]
 })
 st.dataframe(tabla, use_container_width=True)
+
+
+st.subheader("Modelo teórico de Torricelli")
+
+with st.expander("Ver fórmula del modelo teórico"):
+    st.latex(r"h(t) = \left(\sqrt{h_0} - k \cdot t\right)^2")
+    st.latex(r"k = \frac{C_d \cdot A_o \sqrt{2g}}{2 A_T}")
+    st.latex(r"A_T = \frac{\pi d_T^2}{4} \qquad A_o = \frac{\pi d_o^2}{4}")
+
+# Parámetros físicos
+Cd = 0.65
+g  = 9.8
+h0 = 9 / 100          # convertir cm a metros
+
+AT = np.pi * (0.06)**2  / 4
+Ao = np.pi * (0.0012)**2 / 4
+
+# Constante k
+k = (Cd * Ao * np.sqrt(2 * g)) / (2 * AT)
+
+# Tiempo hasta vaciado completo
+t_max = np.sqrt(h0) / k
+t_teorico = np.linspace(0, t_max, 300)
+
+# Modelo h(t) = (sqrt(h0) - k*t)²
+h_teorico = (np.sqrt(h0) - k * t_teorico)**2
+h_teorico_cm = h_teorico * 100   # convertir a cm
+
+# Gráfica
+fig_teorico = go.Figure()
+fig_teorico.add_trace(go.Scatter(
+    x=t_teorico, y=h_teorico_cm,
+    mode="lines",
+    name="Modelo teórico Torricelli",
+    line=dict(color="cyan", width=2)
+))
+fig_teorico.update_layout(
+    title="Modelo teórico: h(t) = (√h₀ − k·t)²",
+    xaxis=dict(title=dict(text="Tiempo (s)")),
+    yaxis=dict(title=dict(text="Altura (cm)")),
+    template="plotly_dark"
+)
+st.plotly_chart(fig_teorico, use_container_width=True)
+
+# Mostrar parámetros calculados
+col1, col2, col3 = st.columns(3)
+col1.metric("k", f"{k:.6f}")
+col2.metric("AT (m²)", f"{AT:.6f}")
+col3.metric("Ao (m²)", f"{Ao:.8f}")
+
+
 
 # Ocultar menú y footer de Streamlit y asignnando estilos
 st.markdown("""
