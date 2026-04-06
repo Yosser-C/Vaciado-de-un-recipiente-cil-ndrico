@@ -423,7 +423,7 @@ with st.expander("Ver fórmula del modelo teórico"):
 # Parámetros físicos
 Cd = 0.65
 g  = 9.8
-h0 = 9 / 100          # convertir cm a metros
+h0 = 9 / 100
 
 AT = np.pi * (0.06)**2  / 4
 Ao = np.pi * (0.0012)**2 / 4
@@ -435,11 +435,11 @@ k = (Cd * Ao * np.sqrt(2 * g)) / (2 * AT)
 t_max = np.sqrt(h0) / k
 t_teorico = np.linspace(0, t_max, 300)
 
-# Modelo h(t) = (sqrt(h0) - k*t)²
+# Modelo 
 h_teorico = (np.sqrt(h0) - k * t_teorico)**2
-h_teorico_cm = h_teorico * 100   # convertir a cm
+h_teorico_cm = h_teorico * 100
 
-# Gráfica
+# Grafica solo del modelo teórico
 fig_teorico = go.Figure()
 fig_teorico.add_trace(go.Scatter(
     x=t_teorico, y=h_teorico_cm,
@@ -455,46 +455,46 @@ fig_teorico.update_layout(
 )
 st.plotly_chart(fig_teorico, use_container_width=True)
 
-# Mostrar parámetros calculados
+# Parámetros calculados
 col1, col2, col3 = st.columns(3)
 col1.metric("k", f"{k:.6f}")
 col2.metric("AT (m²)", f"{AT:.6f}")
 col3.metric("Ao (m²)", f"{Ao:.8f}")
 
+st.divider()
+
+# Comparación modelo teórico vs interpolación cubica
 st.subheader("Comparación: Modelo teórico vs Interpolación Cúbica")
 
-# Interpolación cúbica evaluada en t_teorico para comparar
-h_cubica_comp = np.array([lagrange_interp(t, h, ti, 3) for ti in t_teorico])
+# Interpolación cubica en t_teorico 
+h_cubica_curva = np.array([lagrange_interp(t, h, ti, 3) for ti in t_teorico])
 
+# Interpolación cubica en t 
+h_cubica_en_t = np.array([lagrange_interp(t, h, ti, 3) for ti in t])
+
+# Modelo teorico en los puntos experimentales 
+h_teorico_en_t = (np.sqrt(h0) - k * t)**2 * 100
+
+# Grafica comparativa
 fig_comp_teorico = go.Figure()
-
-# Modelo teórico Torricelli
 fig_comp_teorico.add_trace(go.Scatter(
-    x=t_teorico,
-    y=h_teorico_cm,
+    x=t_teorico, y=h_teorico_cm,
     mode="lines",
     name="Modelo teórico Torricelli",
     line=dict(color="cyan", width=2)
 ))
-
-# Interpolación cúbica
 fig_comp_teorico.add_trace(go.Scatter(
-    x=t_teorico,
-    y=h_cubica_comp,
+    x=t_teorico, y=h_cubica_curva,
     mode="lines",
     name="Interpolación Cúbica",
     line=dict(color="lime", width=2, dash="dash")
 ))
-
-# Datos experimentales
 fig_comp_teorico.add_trace(go.Scatter(
-    x=t,
-    y=h,
+    x=t, y=h,
     mode="markers",
     name="Datos experimentales",
     marker=dict(color="yellow", size=8)
 ))
-
 fig_comp_teorico.update_layout(
     title="Comparación: Modelo teórico de Torricelli vs Interpolación Cúbica",
     xaxis=dict(title=dict(text="Tiempo (s)")),
@@ -503,17 +503,46 @@ fig_comp_teorico.update_layout(
 )
 st.plotly_chart(fig_comp_teorico, use_container_width=True)
 
-# Error entre modelo teórico y cúbica
-h_teorico_en_t = (np.sqrt(h0) - k * t)**2 * 100
+# Error relativo entre modelo teórico y cúbica en puntos experimentales
 with np.errstate(divide='ignore', invalid='ignore'):
     error_teo_vs_cubica = np.where(
         h_teorico_en_t != 0,
-        np.abs((h_teorico_en_t - g3[0]) / h_teorico_en_t) * 100,
+        np.abs((h_teorico_en_t - h_cubica_en_t) / h_teorico_en_t) * 100,
         0
     )
 
+# Grafica del error
+fig_error_comp = go.Figure()
+fig_error_comp.add_trace(go.Scatter(
+    x=t, y=error_teo_vs_cubica,
+    mode="lines+markers",
+    name="Error teórico vs Cúbica",
+    line=dict(color="orange", width=2),
+    marker=dict(size=6)
+))
+fig_error_comp.add_hline(
+    y=np.mean(error_teo_vs_cubica),
+    line_dash="dash",
+    line_color="white",
+    annotation_text=f"Promedio: {np.mean(error_teo_vs_cubica):.2f}%"
+)
+fig_error_comp.update_layout(
+    title="Error relativo % — Modelo teórico vs Interpolación Cúbica",
+    xaxis=dict(title=dict(text="Tiempo (s)")),
+    yaxis=dict(title=dict(text="εt%")),
+    template="plotly_dark"
+)
+st.plotly_chart(fig_error_comp, use_container_width=True)
 
-# Ocultar menú y footer de Streamlit y asignnando estilos
+# Metricas
+error_prom = np.mean(error_teo_vs_cubica)
+error_std  = np.std(error_teo_vs_cubica)
+col1, col2 = st.columns(2)
+col1.metric("εt% promedio (teórico vs cúbica)", f"{error_prom:.4f}%")
+col2.metric("Desv. estándar εt%", f"{error_std:.4f}%")
+
+
+# Ocultar menu y footer de Streamlit y asignnando estilos
 st.markdown("""
     <style>
         #MainMenu {visibility: hidden;}
