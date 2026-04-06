@@ -461,11 +461,10 @@ col1.metric("k", f"{k:.6f}")
 col2.metric("AT (m²)", f"{AT:.6f}")
 col3.metric("Ao (m²)", f"{Ao:.8f}")
 
-st.subheader("Comparación: Modelo teórico vs Interpolación Cuártica")
+st.subheader("Comparación: Modelo teórico vs Interpolación Cúbica")
 
-# Interpolación cuártica evaluada en t_teorico para comparar
-h_cuartica_comp = np.array([lagrange_interp(t, h, ti, 4) for ti in t_teorico])
-h_cuartica_comp_m = h_cuartica_comp / 100  # convertir cm a metros
+# Interpolación cúbica evaluada en t_teorico para comparar
+h_cubica_comp = np.array([lagrange_interp(t, h, ti, 3) for ti in t_teorico])
 
 fig_comp_teorico = go.Figure()
 
@@ -478,13 +477,13 @@ fig_comp_teorico.add_trace(go.Scatter(
     line=dict(color="cyan", width=2)
 ))
 
-# Interpolación cuártica
+# Interpolación cúbica
 fig_comp_teorico.add_trace(go.Scatter(
     x=t_teorico,
-    y=h_cuartica_comp,
+    y=h_cubica_comp,
     mode="lines",
-    name="Interpolación Cuártica",
-    line=dict(color="violet", width=2, dash="dash")
+    name="Interpolación Cúbica",
+    line=dict(color="lime", width=2, dash="dash")
 ))
 
 # Datos experimentales
@@ -497,33 +496,33 @@ fig_comp_teorico.add_trace(go.Scatter(
 ))
 
 fig_comp_teorico.update_layout(
-    title="Comparación: Modelo teórico de Torricelli vs Interpolación Cuártica",
+    title="Comparación: Modelo teórico de Torricelli vs Interpolación Cúbica",
     xaxis=dict(title=dict(text="Tiempo (s)")),
     yaxis=dict(title=dict(text="Altura (cm)")),
     template="plotly_dark"
 )
 st.plotly_chart(fig_comp_teorico, use_container_width=True)
 
-# Error entre modelo teórico y cuártica
-h_teorico_en_t = (np.sqrt(h0) - k * t)**2 * 100  # modelo en los puntos experimentales
+# Error entre modelo teórico y cúbica
+h_teorico_en_t = (np.sqrt(h0) - k * t)**2 * 100
 with np.errstate(divide='ignore', invalid='ignore'):
-    error_teo_vs_cuartica = np.where(
+    error_teo_vs_cubica = np.where(
         h_teorico_en_t != 0,
-        np.abs((h_teorico_en_t - g4[0]) / h_teorico_en_t) * 100,
+        np.abs((h_teorico_en_t - g3[0]) / h_teorico_en_t) * 100,
         0
     )
 
 fig_error_comp = go.Figure()
 fig_error_comp.add_trace(go.Scatter(
     x=t,
-    y=error_teo_vs_cuartica,
+    y=error_teo_vs_cubica,
     mode="lines+markers",
-    name="Error teórico vs Cuártica",
+    name="Error teórico vs Cúbica",
     line=dict(color="orange", width=2),
     marker=dict(size=6)
 ))
 fig_error_comp.update_layout(
-    title="Error relativo % — Modelo teórico vs Interpolación Cuártica",
+    title="Error relativo % — Modelo teórico vs Interpolación Cúbica",
     xaxis=dict(title=dict(text="Tiempo (s)")),
     yaxis=dict(title=dict(text="εt%")),
     template="plotly_dark"
@@ -531,12 +530,11 @@ fig_error_comp.update_layout(
 st.plotly_chart(fig_error_comp, use_container_width=True)
 
 # Métricas
-error_prom = np.mean(error_teo_vs_cuartica)
-error_std  = np.std(error_teo_vs_cuartica)
+error_prom = np.mean(error_teo_vs_cubica)
+error_std  = np.std(error_teo_vs_cubica)
 col1, col2 = st.columns(2)
-col1.metric("εt% promedio (teórico vs cuártica)", f"{error_prom:.4f}%")
+col1.metric("εt% promedio (teórico vs cúbica)", f"{error_prom:.4f}%")
 col2.metric("Desv. estándar εt%", f"{error_std:.4f}%")
-
 
 # Ocultar menú y footer de Streamlit y asignnando estilos
 st.markdown("""
