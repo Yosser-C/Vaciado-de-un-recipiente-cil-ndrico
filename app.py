@@ -426,8 +426,8 @@ Cd = 0.457
 g  = 9.8
 h0 = 9 / 100
 
-AT = np.pi * (0.06/2)**2 
-Ao = np.pi * (0.0012/2)**2
+AT = (np.pi * (0.06)**2) /2
+Ao = (np.pi * (0.0012)**2) /2
 
 # Constante k
 k = (Cd * Ao * np.sqrt(2 * g)) / (2 * AT)
