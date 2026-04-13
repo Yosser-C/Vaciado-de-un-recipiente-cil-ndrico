@@ -263,9 +263,21 @@ with tab4:
     )
     st.plotly_chart(fig_comp_reg, use_container_width=True)
 
-    
+
+
+
+
+
+
+
+
+
+
+
+
 
 st.divider()
+
 
 
 
@@ -500,6 +512,41 @@ fig_comp_teorico.update_layout(
 st.plotly_chart(fig_comp_teorico, use_container_width=True)
 
 
+st.divider()
+
+# Comparación modelo teórico vs regresión polinomial
+st.subheader("Comparación: Modelo teórico vs Regresión Polinomial")
+
+# Regresión polinomial evaluada en t_teorico para la curva visual
+h_pol_curva = np.polyval(coef2, t_teorico)
+
+# Gráfica comparativa
+fig_comp_pol_tori = go.Figure()
+fig_comp_pol_tori.add_trace(go.Scatter(
+    x=t_teorico, y=h_teorico_cm,
+    mode="lines",
+    name="Modelo teórico Torricelli",
+    line=dict(color="cyan", width=2)
+))
+fig_comp_pol_tori.add_trace(go.Scatter(
+    x=t_teorico, y=h_pol_curva,
+    mode="lines",
+    name="Regresión Polinomial grado 2",
+    line=dict(color="orange", width=2, dash="dash")
+))
+fig_comp_pol_tori.add_trace(go.Scatter(
+    x=t, y=h,
+    mode="markers",
+    name="Datos experimentales",
+    marker=dict(color="yellow", size=8)
+))
+fig_comp_pol_tori.update_layout(
+    title="Comparación: Modelo teórico de Torricelli vs Regresión Polinomial grado 2",
+    xaxis=dict(title=dict(text="Tiempo (s)")),
+    yaxis=dict(title=dict(text="Altura (cm)")),
+    template="plotly_dark"
+)
+st.plotly_chart(fig_comp_pol_tori, use_container_width=True)
 
 
 
