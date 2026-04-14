@@ -551,7 +551,7 @@ fig_comp_pol_tori.add_trace(go.Scatter(
     line=dict(color="orange", width=2, dash="dash")
 ))
 fig_comp_pol_tori.add_trace(go.Scatter(
-    x=t, y=h,
+    x=t_exp, y=h_exp_m,          # <- usa t_exp y h_exp_m en metros
     mode="markers",
     name="Datos experimentales",
     marker=dict(color="yellow", size=8)
@@ -559,13 +559,29 @@ fig_comp_pol_tori.add_trace(go.Scatter(
 fig_comp_pol_tori.update_layout(
     title="Comparación: Modelo teórico de Torricelli vs Regresión Polinomial grado 2",
     xaxis=dict(title=dict(text="Tiempo (s)")),
-    yaxis=dict(title=dict(text="Altura (cm)")),
+    yaxis=dict(title=dict(text="Altura (m)")),
     template="plotly_dark"
 )
 st.plotly_chart(fig_comp_pol_tori, use_container_width=True)
+# Exactitud promedio — ambos en metros
+mask = t_exp <= t_max
 
+h_teorico_en_exp = (np.sqrt(h0) - k * t_exp[mask])**2 * 100  
+h_exp_valida = h_exp_m[mask]                              
 
+with np.errstate(divide='ignore', invalid='ignore'):
+    exactitud = np.where(
+        h_teorico_en_exp != 0,
+        (h_teorico_en_exp - h_exp_valida) / h_teorico_en_exp * 100,
+        0
+    )
 
+exactitud_prom = np.mean(exactitud)
+exactitud_std  = np.std(exactitud)
+
+col1, col2 = st.columns(2)
+col1.metric("Error promedio", f"{exactitud_prom:.4f}%")
+col2.metric("Desv. estándar del Error", f"{exactitud_std:.4f}%")
 
 
 # Ocultar menu y footer de Streamlit y asignnando estilos
