@@ -15,7 +15,7 @@ import seaborn as sns
 from scipy.optimize import curve_fit          # regresión exponencial no lineal
 from scipy.stats import pearsonr              # coeficiente de correlación
 
-# Matemáticas base
+# Matematicas base
 from math import sqrt
 
 # Configuración de la página 
@@ -266,16 +266,6 @@ with tab4:
 
 
 
-
-
-
-
-
-
-
-
-
-
 st.divider()
 
 
@@ -284,47 +274,76 @@ st.divider()
 st.header("Interpolación de Lagrange")
 
 # Función de Lagrange
-def lagrange_interp(x_data, y_data, x, grado):
-    # Seleccionar puntos equiespaciados según el grado
-    indices = np.linspace(0, len(x_data)-1, grado+1, dtype=int)
-    xp = x_data[indices]
-    yp = y_data[indices]
+# Datos reales del experimento (en metros, como en el Excel)
+t_exp = np.array([0, 5.15, 10.16, 15.4, 20.8, 25.18, 30, 35.15, 40.13,
+                  45.16, 50.11, 55.14, 59.98, 65, 70.18, 75.06, 80.09,
+                  85.12, 90.08, 94.89, 99.96, 105.08, 110.01, 115.13,
+                  120.05, 125.1, 130.16, 135.15, 140.1, 145.21, 150.13,
+                  155.21, 160.05])
+
+h_exp_m = np.array([9, 8.5, 7.9, 7.5, 7.1, 6.8, 6.4, 5.9, 5.5,
+                    5.1, 4.8, 4.4, 4.2, 3.9, 3.5, 3.2, 3,
+                    2.7, 2.5, 2.3, 2, 1.7, 1.5, 1.3,
+                    1.1, 0.9, 0.6, 0.5, 0.4, 0.3, 0.2,
+                    0.1, 0])
+
+def lagrange_local(x_data, y_data, x_target, grado):
+    """Interpolación de Lagrange local usando los vecinos más cercanos"""
+    n = len(x_data)
+    # Encontrar el índice del punto más cercano
+    idx = np.argmin(np.abs(x_data - x_target))
+    
+    # Seleccionar vecinos locales centrados alrededor del punto
+    half = grado // 2
+    start = max(0, idx - half)
+    end = start + grado + 1
+    if end > n:
+        end = n
+        start = max(0, end - grado - 1)
+    
+    xp = x_data[start:end]
+    yp = y_data[start:end]
     
     result = 0.0
     for i in range(len(xp)):
         term = yp[i]
         for j in range(len(xp)):
             if i != j:
-                term *= (x - xp[j]) / (xp[i] - xp[j])
+                term *= (x_target - xp[j]) / (xp[i] - xp[j])
         result += term
     return result
 
-# Calcular interpolaciones para todos los grados
-t_suave = np.linspace(t[0], t[-1], 300)
-colores = ["yellow", "orange", "lime", "violet"]
+def calcular_grado_local(grado):
+    """Calcula interpolación local — solo en puntos intermedios como el Excel"""
+    h_interp = []
+    et_list = []
+    indices_eval = []
 
-def calcular_grado(grado):
-    h_interp = np.array([lagrange_interp(t, h, ti, grado) for ti in t])
-    h_curva  = np.array([lagrange_interp(t, h, ti, grado) for ti in t_suave])
-    
-    # Error relativo porcentual
-    with np.errstate(divide='ignore', invalid='ignore'):
-        et = np.where(h != 0, np.abs((h - h_interp) / h) * 100, 0)
-    
-    et_prom = np.mean(et)
-    et_std  = np.std(et)
-    return h_interp, h_curva, et, et_prom, et_std
+    for i in range(len(t_exp)):
+        # Solo evaluar en puntos intermedios (como hace el Excel)
+        # Para grado 1: cada 2 puntos, grado 2: cada 3, etc.
+        if i % (grado + 1) == grado // 2 and i > 0 and i < len(t_exp) - 1:
+            h_pred = lagrange_local(t_exp, h_exp_m, t_exp[i], grado)
+            h_real = h_exp_m[i]
+            et = abs((h_real - h_pred) / h_real) * 100 if h_real != 0 else 0
+            h_interp.append(h_pred)
+            et_list.append(et)
+            indices_eval.append(i)
 
-g1 = calcular_grado(1)
-g2 = calcular_grado(2)
-g3 = calcular_grado(3)
-g4 = calcular_grado(4)
-grados = [g1, g2, g3, g4]
+    et_arr = np.array(et_list)
+    return np.array(h_interp), np.array(et_arr), np.array(indices_eval), np.mean(et_arr), np.std(et_arr)
 
+# Calcular para los 4 grados
+res1 = calcular_grado_local(1)
+res2 = calcular_grado_local(2)
+res3 = calcular_grado_local(3)
+res4 = calcular_grado_local(4)
 
 itab1, itab2, itab3, itab4 = st.tabs(["Lineal", "Cuadrática", "Cúbica", "Cuártica"])
 tabs_interp = [itab1, itab2, itab3, itab4]
 nombres = ["Lineal", "Cuadrática", "Cúbica", "Cuártica"]
+resultados = [res1, res2, res3, res4]
+colores = ["yellow", "orange", "lime", "violet"]
 
 formulas = [
     r"P_1(x) = \frac{x - x_1}{x_0 - x_1} f(x_0) + \frac{x - x_0}{x_1 - x_0} f(x_1)",
@@ -333,7 +352,7 @@ formulas = [
     r"P_4(x) = \sum_{i=0}^{4} f(x_i) \prod_{j=0, j \neq i}^{4} \frac{x - x_j}{x_i - x_j}",
 ]
 
-for i, (tab, (h_interp, h_curva, et, et_prom, et_std)) in enumerate(zip(tabs_interp, grados)):
+for i, (tab, (h_pred, et_arr, idx_eval, et_prom, et_std)) in enumerate(zip(tabs_interp, resultados)):
     with tab:
         st.subheader(f"Interpolación {nombres[i]}")
 
@@ -345,26 +364,32 @@ for i, (tab, (h_interp, h_curva, et, et_prom, et_std)) in enumerate(zip(tabs_int
             st.markdown("**Error promedio:**")
             st.latex(r"\varepsilon_t \%_{promedio} = \frac{1}{n} \sum_{i=1}^{n} \varepsilon_t \%_i")
 
+        # Gráfica: datos + puntos interpolados
         fig_interp = go.Figure()
         fig_interp.add_trace(go.Scatter(
-            x=t, y=h, mode="markers", name="Datos experimentales",
+            x=t_exp, y=h_exp_m,
+            mode="markers",
+            name="Datos experimentales",
             marker=dict(color="cyan", size=8)
         ))
         fig_interp.add_trace(go.Scatter(
-            x=t_suave, y=h_curva, mode="lines",
-            name="Interpolación",
-            line=dict(color=colores[i], width=2)
+            x=t_exp[idx_eval], y=h_pred,
+            mode="markers",
+            name="Puntos interpolados",
+            marker=dict(color=colores[i], size=10, symbol="diamond")
         ))
         fig_interp.update_layout(
-            title=f"Interpolación {nombres[i]} de Lagrange",
-            xaxis_title="Tiempo (s)", yaxis_title="Altura (cm)",
+            title=f"Interpolación {nombres[i]} de Lagrange — puntos interpolados",
+            xaxis_title="Tiempo (s)", yaxis_title="Altura (m)",
             template="plotly_dark"
         )
         st.plotly_chart(fig_interp, use_container_width=True)
 
+        # Gráfica del error
         fig_error = go.Figure()
         fig_error.add_trace(go.Scatter(
-            x=t, y=et, mode="lines+markers",
+            x=t_exp[idx_eval], y=et_arr,
+            mode="lines+markers",
             name="εt%",
             line=dict(color=colores[i], width=2),
             marker=dict(size=6)
@@ -381,36 +406,41 @@ for i, (tab, (h_interp, h_curva, et, et_prom, et_std)) in enumerate(zip(tabs_int
         col2.metric("Desv. estándar εt%", f"{et_std:.4f}%")
 
 st.divider()
-
-# Comparacion de todos los grados
 st.subheader("Comparación de interpolaciones")
 
+# Gráfica comparativa de puntos interpolados
 fig_comp = go.Figure()
 fig_comp.add_trace(go.Scatter(
-    x=t, y=h, mode="markers", name="Datos experimentales",
+    x=t_exp, y=h_exp_m, mode="markers",
+    name="Datos experimentales",
     marker=dict(color="cyan", size=8)
 ))
-for i, (_, h_curva, _, _, _) in enumerate(grados):
+for i, (h_pred, et_arr, idx_eval, et_prom, et_std) in enumerate(resultados):
     fig_comp.add_trace(go.Scatter(
-        x=t_suave, y=h_curva, mode="lines",
-        name=nombres[i], line=dict(color=colores[i], width=2)
+        x=t_exp[idx_eval], y=h_pred,
+        mode="markers",
+        name=nombres[i],
+        marker=dict(color=colores[i], size=9, symbol="diamond")
     ))
 fig_comp.update_layout(
     title="Comparación de interpolaciones — Lineal, Cuadrática, Cúbica y Cuártica",
-    xaxis_title="Tiempo (s)", yaxis_title="Altura (cm)",
+    xaxis_title="Tiempo (s)", yaxis_title="Altura (m)",
     template="plotly_dark"
 )
 st.plotly_chart(fig_comp, use_container_width=True)
 
+# Gráfica comparativa de errores
 fig_err_comp = go.Figure()
-for i, (_, _, et, _, _) in enumerate(grados):
+for i, (h_pred, et_arr, idx_eval, et_prom, et_std) in enumerate(resultados):
     fig_err_comp.add_trace(go.Scatter(
-        x=t, y=et, mode="lines+markers",
+        x=t_exp[idx_eval], y=et_arr,
+        mode="lines+markers",
         name=f"εt% {nombres[i]}",
-        line=dict(color=colores[i], width=2), marker=dict(size=5)
+        line=dict(color=colores[i], width=2),
+        marker=dict(size=5)
     ))
 fig_err_comp.update_layout(
-    title="Comparación εt% vs t en todos los grados",
+    title="Comparación εt% vs t — todos los grados",
     xaxis_title="Tiempo (s)", yaxis_title="εt%",
     template="plotly_dark"
 )
@@ -420,11 +450,24 @@ st.plotly_chart(fig_err_comp, use_container_width=True)
 st.subheader("Tabla comparativa de estadísticos")
 tabla = pd.DataFrame({
     "Interpolación": nombres,
-    "εt% promedio": [f"{g[3]:.4f}%" for g in grados],
-    "Desv. estándar εt%": [f"{g[4]:.4f}%" for g in grados]
+    "εt% promedio": [f"{r[3]:.4f}%" for r in resultados],
+    "Desv. estándar εt%": [f"{r[4]:.4f}%" for r in resultados]
 })
 st.dataframe(tabla, use_container_width=True, hide_index=True)
 
+def lagrange_interp(x_data, y_data, x, grado):
+    """Función de Lagrange global para las comparaciones con el modelo teórico"""
+    indices = np.linspace(0, len(x_data)-1, grado+1, dtype=int)
+    xp = x_data[indices]
+    yp = y_data[indices]
+    result = 0.0
+    for i in range(len(xp)):
+        term = yp[i]
+        for j in range(len(xp)):
+            if i != j:
+                term *= (x - xp[j]) / (xp[i] - xp[j])
+        result += term
+    return result
 
 st.subheader("Modelo teórico de Torricelli")
 
@@ -484,16 +527,17 @@ h_cubica_curva = np.array([lagrange_interp(t, h, ti, 3) for ti in t_teorico])
 
 
 # Grafica comparativa
+# Grafica comparativa
 fig_comp_teorico = go.Figure()
 fig_comp_teorico.add_trace(go.Scatter(
     x=t_teorico, y=h_teorico_cm,
-    mode="lines",
+    mode="lines+markers",
     name="Modelo teórico Torricelli",
     line=dict(color="cyan", width=2)
 ))
 fig_comp_teorico.add_trace(go.Scatter(
     x=t_teorico, y=h_cubica_curva,
-    mode="lines",
+    mode="lines+markers",
     name="Interpolación Cúbica",
     line=dict(color="lime", width=2, dash="dash")
 ))
